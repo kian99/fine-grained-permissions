@@ -1,0 +1,1081 @@
+openapi: 3.0.3
+info:
+  title: Juju fine-grained permissions demo API
+  version: 0.1.0
+  license:
+    name: AGPL-3.0-only
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+  description: |
+    Demonstrates a Juju-owned authorization API backed by OpenFGA.
+    Authentication is intentionally insecure: callers select their identity with
+    the X-Demo-User header.
+servers:
+  - url: /v1
+security:
+  - DemoUser: []
+tags:
+  - name: system
+    description: Health and runtime information.
+  - name: permissions
+    description: Permission catalogue and authorization decisions.
+  - name: users
+    description: Demo user administration.
+  - name: groups
+    description: Group and membership administration.
+  - name: roles
+    description: Mutable role administration.
+  - name: bindings
+    description: Scoped role assignment.
+  - name: resources
+    description: Permission-protected Juju-like resources.
+  - name: legacy
+    description: Compatibility operations for coarse model access.
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Check server and authorization-engine readiness
+      tags: [system]
+      security: []
+      responses:
+        "200":
+          description: Server and OpenFGA are ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /permissions:
+    get:
+      operationId: listPermissions
+      summary: List the permission catalogue
+      tags: [permissions]
+      responses:
+        "200":
+          description: Stable permission catalogue.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Permission"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /users:
+    get:
+      operationId: listUsers
+      summary: List demo users
+      tags: [users]
+      responses:
+        "200":
+          description: Users visible to the caller.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createUser
+      summary: Create a demo user
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUser"
+      responses:
+        "201":
+          description: User created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /groups:
+    get:
+      operationId: listGroups
+      summary: List groups and memberships
+      tags: [groups]
+      responses:
+        "200":
+          description: Groups visible to the caller.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createGroup
+      summary: Create a group
+      tags: [groups]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroup"
+      responses:
+        "201":
+          description: Group created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /groups/{groupId}/members:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    post:
+      operationId: addGroupMember
+      summary: Add a user to a group
+      tags: [groups]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupMemberChange"
+      responses:
+        "204":
+          description: Member added.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: removeGroupMember
+      summary: Remove a user from a group
+      tags: [groups]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupMemberChange"
+      responses:
+        "204":
+          description: Member removed.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /roles:
+    get:
+      operationId: listRoles
+      summary: List built-in and custom roles
+      tags: [roles]
+      responses:
+        "200":
+          description: Roles visible to the caller.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Role"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createRole
+      summary: Create a mutable custom role
+      tags: [roles]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRole"
+      responses:
+        "201":
+          description: Role created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Role"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /roles/{roleId}:
+    parameters:
+      - $ref: "#/components/parameters/RoleId"
+    get:
+      operationId: getRole
+      summary: Get a role
+      tags: [roles]
+      responses:
+        "200":
+          description: Role details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Role"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      operationId: updateRole
+      summary: Update a custom role at an expected revision
+      tags: [roles]
+      parameters:
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRole"
+      responses:
+        "200":
+          description: Updated role.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Role"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /roles/{roleId}/preview:
+    parameters:
+      - $ref: "#/components/parameters/RoleId"
+    post:
+      operationId: previewRoleUpdate
+      summary: Preview the impact of a custom role update
+      tags: [roles]
+      parameters:
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRole"
+      responses:
+        "200":
+          description: Access-impact preview.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleUpdatePreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /bindings:
+    get:
+      operationId: listBindings
+      summary: List role bindings
+      tags: [bindings]
+      responses:
+        "200":
+          description: Bindings visible to the caller.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Binding"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createBinding
+      summary: Bind a role to a user or group
+      tags: [bindings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBinding"
+      responses:
+        "201":
+          description: Binding created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Binding"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /bindings/{bindingId}:
+    parameters:
+      - $ref: "#/components/parameters/BindingId"
+    delete:
+      operationId: deleteBinding
+      summary: Remove a role binding
+      tags: [bindings]
+      responses:
+        "204":
+          description: Binding removed.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /authorize:
+    post:
+      operationId: checkAuthorization
+      summary: Check one permission decision
+      tags: [permissions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthorizationCheck"
+      responses:
+        "200":
+          description: Authorization decision.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthorizationDecision"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /authorize/batch:
+    post:
+      operationId: checkAuthorizationBatch
+      summary: Check ordered permission decisions
+      tags: [permissions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchAuthorizationCheck"
+      responses:
+        "200":
+          description: Ordered authorization decisions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuthorizationDecision"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legacy/grants:
+    post:
+      operationId: grantLegacyAccess
+      summary: Grant coarse model access through a compatibility role
+      tags: [legacy]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LegacyAccessChange"
+      responses:
+        "200":
+          description: Compatibility binding created or updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Binding"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /legacy/revokes:
+    post:
+      operationId: revokeLegacyAccess
+      summary: Downgrade or remove a coarse model compatibility role
+      tags: [legacy]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LegacyAccessChange"
+      responses:
+        "200":
+          description: Compatibility binding downgraded or removed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegacyRevokeResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /resources:
+    get:
+      operationId: listResources
+      summary: List readable resources
+      tags: [resources]
+      parameters:
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/ResourceType"
+      responses:
+        "200":
+          description: Resources filtered by the caller's read permission.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Resource"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    post:
+      operationId: createResource
+      summary: Create a resource under an authorized parent
+      tags: [resources]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateResource"
+      responses:
+        "201":
+          description: Resource created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resource"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /resources/{resourceType}/{resourceId}:
+    parameters:
+      - $ref: "#/components/parameters/ResourceType"
+      - $ref: "#/components/parameters/ResourceId"
+    get:
+      operationId: getResource
+      summary: Get readable resource details
+      tags: [resources]
+      responses:
+        "200":
+          description: Resource details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resource"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    delete:
+      operationId: deleteResource
+      summary: Delete an authorized leaf resource
+      tags: [resources]
+      responses:
+        "204":
+          description: Resource removed.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /applications/{applicationId}/config:
+    parameters:
+      - name: applicationId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getApplicationConfig
+      summary: Read application configuration
+      tags: [resources]
+      responses:
+        "200":
+          description: Application configuration.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationConfig"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    put:
+      operationId: updateApplicationConfig
+      summary: Update application configuration
+      tags: [resources]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplicationConfig"
+      responses:
+        "200":
+          description: Updated application configuration.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationConfig"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /units/{unitId}/ssh:
+    post:
+      operationId: sshUnit
+      summary: Simulate an SSH session to a unit
+      tags: [resources]
+      parameters:
+        - name: unitId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Simulated SSH session.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /machines/{machineId}/ssh:
+    post:
+      operationId: sshMachine
+      summary: Simulate an SSH session to a machine
+      tags: [resources]
+      parameters:
+        - name: machineId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Simulated SSH session.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+components:
+  securitySchemes:
+    DemoUser:
+      type: apiKey
+      in: header
+      name: X-Demo-User
+      description: Insecure demo identity selected by the caller.
+  parameters:
+    GroupId:
+      name: groupId
+      in: path
+      required: true
+      schema:
+        type: string
+    RoleId:
+      name: roleId
+      in: path
+      required: true
+      schema:
+        type: string
+    BindingId:
+      name: bindingId
+      in: path
+      required: true
+      schema:
+        type: string
+    ResourceType:
+      name: resourceType
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ResourceType"
+    ResourceId:
+      name: resourceId
+      in: path
+      required: true
+      schema:
+        type: string
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: Expected integer role revision.
+      schema:
+        type: integer
+        minimum: 1
+  responses:
+    BadRequest:
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Unauthorized:
+      description: X-Demo-User is missing or invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Forbidden:
+      description: The acting user lacks the required permission.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: Requested object was not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Conflict:
+      description: The request conflicts with current state or revision.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    ServiceUnavailable:
+      description: The authorization engine is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+  schemas:
+    Health:
+      type: object
+      additionalProperties: false
+      required: [status, openfga]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        openfga:
+          type: string
+          enum: [ok]
+    Problem:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    User:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    CreateUser:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+    Group:
+      type: object
+      additionalProperties: false
+      required: [id, name, members]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        members:
+          type: array
+          items:
+            type: string
+    CreateGroup:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+    GroupMemberChange:
+      type: object
+      additionalProperties: false
+      required: [user_id]
+      properties:
+        user_id:
+          type: string
+    ResourceType:
+      type: string
+      enum:
+        - controller
+        - model
+        - application
+        - unit
+        - machine
+        - cloud-credential
+    ResourceRef:
+      type: object
+      additionalProperties: false
+      required: [type, id]
+      properties:
+        type:
+          $ref: "#/components/schemas/ResourceType"
+        id:
+          type: string
+    Permission:
+      type: object
+      additionalProperties: false
+      required: [name, resource_types, description]
+      properties:
+        name:
+          type: string
+        resource_types:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/ResourceType"
+        description:
+          type: string
+    Role:
+      type: object
+      additionalProperties: false
+      required: [id, name, description, revision, built_in, permissions]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        revision:
+          type: integer
+          minimum: 1
+        built_in:
+          type: boolean
+        permissions:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+    CreateRole:
+      type: object
+      additionalProperties: false
+      required: [name, description, permissions]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        permissions:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+    UpdateRole:
+      type: object
+      additionalProperties: false
+      required: [description, permissions]
+      properties:
+        description:
+          type: string
+        permissions:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+    RoleUpdatePreview:
+      type: object
+      additionalProperties: false
+      required: [role_id, current_revision, added_permissions, removed_permissions, affected_bindings]
+      properties:
+        role_id:
+          type: string
+        current_revision:
+          type: integer
+        added_permissions:
+          type: array
+          items:
+            type: string
+        removed_permissions:
+          type: array
+          items:
+            type: string
+        affected_bindings:
+          type: integer
+    SubjectType:
+      type: string
+      enum: [user, group]
+    Selector:
+      type: object
+      additionalProperties: false
+      required: [match]
+      properties:
+        match:
+          type: string
+          enum: [scope, exact]
+        resources:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/ResourceRef"
+    Binding:
+      type: object
+      additionalProperties: false
+      required: [id, subject_type, subject_id, role_id, scope, selector, compatibility]
+      properties:
+        id:
+          type: string
+        subject_type:
+          $ref: "#/components/schemas/SubjectType"
+        subject_id:
+          type: string
+        role_id:
+          type: string
+        scope:
+          $ref: "#/components/schemas/ResourceRef"
+        selector:
+          $ref: "#/components/schemas/Selector"
+        compatibility:
+          type: boolean
+    CreateBinding:
+      type: object
+      additionalProperties: false
+      required: [subject_type, subject_id, role_id, scope, selector]
+      properties:
+        subject_type:
+          $ref: "#/components/schemas/SubjectType"
+        subject_id:
+          type: string
+        role_id:
+          type: string
+        scope:
+          $ref: "#/components/schemas/ResourceRef"
+        selector:
+          $ref: "#/components/schemas/Selector"
+    AuthorizationCheck:
+      type: object
+      additionalProperties: false
+      required: [principal, permission, resource]
+      properties:
+        principal:
+          type: string
+        permission:
+          type: string
+        resource:
+          $ref: "#/components/schemas/ResourceRef"
+    BatchAuthorizationCheck:
+      type: object
+      additionalProperties: false
+      required: [checks]
+      properties:
+        checks:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/AuthorizationCheck"
+    AuthorizationDecision:
+      type: object
+      additionalProperties: false
+      required: [allowed, reason, permission, resource]
+      properties:
+        allowed:
+          type: boolean
+        reason:
+          type: string
+        permission:
+          type: string
+        resource:
+          $ref: "#/components/schemas/ResourceRef"
+    LegacyAccessLevel:
+      type: string
+      enum: [read, write, admin]
+    LegacyAccessChange:
+      type: object
+      additionalProperties: false
+      required: [user_id, model_id, access]
+      properties:
+        user_id:
+          type: string
+        model_id:
+          type: string
+        access:
+          $ref: "#/components/schemas/LegacyAccessLevel"
+    LegacyRevokeResult:
+      type: object
+      additionalProperties: false
+      required: [effective_access, still_authorized]
+      properties:
+        effective_access:
+          type: string
+          enum: [none, read, write]
+        still_authorized:
+          type: boolean
+        binding:
+          $ref: "#/components/schemas/Binding"
+    Resource:
+      type: object
+      additionalProperties: false
+      required: [id, type, name, status]
+      properties:
+        id:
+          type: string
+        type:
+          $ref: "#/components/schemas/ResourceType"
+        name:
+          type: string
+        status:
+          type: string
+        parent:
+          $ref: "#/components/schemas/ResourceRef"
+    CreateResource:
+      type: object
+      additionalProperties: false
+      required: [type, name]
+      properties:
+        type:
+          $ref: "#/components/schemas/ResourceType"
+        name:
+          type: string
+          minLength: 1
+        parent:
+          $ref: "#/components/schemas/ResourceRef"
+    ApplicationConfig:
+      type: object
+      additionalProperties:
+        type: string
+    OperationResult:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message:
+          type: string

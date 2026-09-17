@@ -1,0 +1,44 @@
+services:
+  openfga-migrate:
+    image: openfga/openfga:v1.10.2
+    user: nonroot
+    command:
+      - migrate
+      - --datastore-engine=sqlite
+      - --datastore-uri=file:/home/nonroot/openfga.db
+    volumes:
+      - openfga-data:/home/nonroot
+
+  openfga:
+    image: openfga/openfga:v1.10.2
+    user: nonroot
+    command:
+      - run
+      - --datastore-engine=sqlite
+      - --datastore-uri=file:/home/nonroot/openfga.db
+      - --playground-enabled=false
+    depends_on:
+      openfga-migrate:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:8180:8080"
+    volumes:
+      - openfga-data:/home/nonroot
+
+  server:
+    build: .
+    user: root
+    environment:
+      DEMO_DATABASE: /data/permissions-demo.db
+      OPENFGA_API_URL: http://openfga:8080
+    depends_on:
+      openfga:
+        condition: service_started
+    ports:
+      - "127.0.0.1:8088:8088"
+    volumes:
+      - demo-data:/data
+
+volumes:
+  openfga-data:
+  demo-data:

@@ -1,0 +1,93 @@
+model
+  schema 1.1
+
+type user
+
+type group
+  relations
+    define member: [user]
+
+type grant
+  relations
+    define subject: [user, group#member]
+
+type controller
+  relations
+    define policy_read: [user, group#member, grant#subject]
+    define policy_manage: [user, group#member, grant#subject]
+    define model_read: [user, group#member, grant#subject]
+    define model_create: [user, group#member, grant#subject]
+    define model_delete: [user, group#member, grant#subject]
+    define application_read: [user, group#member, grant#subject]
+    define application_create: [user, group#member, grant#subject]
+    define application_delete: [user, group#member, grant#subject]
+    define application_config_read: [user, group#member, grant#subject]
+    define application_config_write: [user, group#member, grant#subject]
+    define unit_read: [user, group#member, grant#subject]
+    define unit_create: [user, group#member, grant#subject]
+    define unit_delete: [user, group#member, grant#subject]
+    define unit_ssh: [user, group#member, grant#subject]
+    define machine_read: [user, group#member, grant#subject]
+    define machine_create: [user, group#member, grant#subject]
+    define machine_delete: [user, group#member, grant#subject]
+    define machine_ssh: [user, group#member, grant#subject]
+    define cloud_credential_read: [user, group#member, grant#subject]
+    define cloud_credential_create: [user, group#member, grant#subject]
+    define cloud_credential_delete: [user, group#member, grant#subject]
+
+type model
+  relations
+    define parent: [controller]
+    define read: [user, group#member, grant#subject] or model_read from parent
+    define delete: [user, group#member, grant#subject] or model_delete from parent
+    define application_read: [user, group#member, grant#subject] or application_read from parent
+    define application_create: [user, group#member, grant#subject] or application_create from parent
+    define application_delete: [user, group#member, grant#subject] or application_delete from parent
+    define application_config_read: [user, group#member, grant#subject] or application_config_read from parent
+    define application_config_write: [user, group#member, grant#subject] or application_config_write from parent
+    define unit_read: [user, group#member, grant#subject] or unit_read from parent
+    define unit_create: [user, group#member, grant#subject] or unit_create from parent
+    define unit_delete: [user, group#member, grant#subject] or unit_delete from parent
+    define unit_ssh: [user, group#member, grant#subject] or unit_ssh from parent
+    define machine_read: [user, group#member, grant#subject] or machine_read from parent
+    define machine_create: [user, group#member, grant#subject] or machine_create from parent
+    define machine_delete: [user, group#member, grant#subject] or machine_delete from parent
+    define machine_ssh: [user, group#member, grant#subject] or machine_ssh from parent
+    define policy_read: [user, group#member, grant#subject] or policy_read from parent
+    define policy_manage: [user, group#member, grant#subject] or policy_manage from parent
+
+type application
+  relations
+    define parent: [model]
+    define read: [user, group#member, grant#subject] or application_read from parent
+    define delete: [user, group#member, grant#subject] or application_delete from parent
+    define config_read: [user, group#member, grant#subject] or application_config_read from parent
+    define config_write: [user, group#member, grant#subject] or application_config_write from parent
+    define unit_read: [user, group#member, grant#subject] or unit_read from parent
+    define unit_create: [user, group#member, grant#subject] or unit_create from parent
+    define unit_delete: [user, group#member, grant#subject] or unit_delete from parent
+    define unit_ssh: [user, group#member, grant#subject] or unit_ssh from parent
+    define machine_read: [user, group#member, grant#subject] or machine_read from parent
+    define machine_create: [user, group#member, grant#subject] or machine_create from parent
+    define machine_delete: [user, group#member, grant#subject] or machine_delete from parent
+    define machine_ssh: [user, group#member, grant#subject] or machine_ssh from parent
+
+type unit
+  relations
+    define parent: [application]
+    define read: [user, group#member, grant#subject] or unit_read from parent
+    define delete: [user, group#member, grant#subject] or unit_delete from parent
+    define ssh: [user, group#member, grant#subject] or unit_ssh from parent
+
+type machine
+  relations
+    define parent: [model, application]
+    define read: [user, group#member, grant#subject] or machine_read from parent
+    define delete: [user, group#member, grant#subject] or machine_delete from parent
+    define ssh: [user, group#member, grant#subject] or machine_ssh from parent
+
+type cloud_credential
+  relations
+    define parent: [controller]
+    define read: [user, group#member, grant#subject] or cloud_credential_read from parent
+    define delete: [user, group#member, grant#subject] or cloud_credential_delete from parent
